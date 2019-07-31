@@ -1,0 +1,64 @@
+- deferred rendering
+- decals
+- instanced rendering
+- directional light
+- spot light
+- point light
+- area light
+- CSM for directional lights
+- VSM for directional lights
+- simple shadows for spot lights
+- physically based light parameters
+- spot light cookies
+- point light shadows
+- reflection probes
+- cubemap reflections
+- parallax corrected cubemaps
+- physically based sky model
+- physically rendered sun disc
+- procedural 3d clouds
+- HQ fog
+- water rendering
+- cloth rendering & simulation
+- subsurface scattering shading model
+
+- CPU particle system
+- GPU particle system
+- skeletal animation
+- global illumination
+
+- frustum light culling
+- frustum object culling
+- occlusion object culling
+- tiled light culling & tiled renderer
+- atmospheric scattering
+- volumetric light scattering
+- lod
+- tesselation
+- SSR
+- SSAO
+- HBAO
+- FXAA
+- TXAA
+- tonemapping
+- lut
+- bloom
+- auto-exposure
+- motion blur
+- distortion
+- DoF
+- chromatic abberation
+
+- vr support
+- rtx support
+
+---------------------
+- content streaming
+- async decompression and loading
+- async upload to GPU
+- basic physical engine
+- basic sound engine
+- wind zones
+- ropes rendering
+- keyboard & mouse input
+- gamepad input
