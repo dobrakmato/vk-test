@@ -59,3 +59,19 @@ pub struct GeometryList<'a> {
 }
 
 // todo: loading & saving of bf files
+
+fn load(bytes: &mut [u8]) -> BfFile {
+    let header_size = std::mem::size_of::<BfHeader>();
+    let (header, data) = bytes.split_at_mut(header_size);
+
+    BfFile {
+        header: BfHeader {
+            magic: 0,
+            kind: Type::Image,
+            version: 0,
+            uncompressed: 0,
+            compressed: 0
+        },
+        data,
+    }
+}
