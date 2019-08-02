@@ -17,8 +17,6 @@ simple_logger = "1.2.0"
 gfx-hal = "0.2.1"
 arrayvec = "0.4.10"
 zerocopy = "0.2.7"
-
-[build-dependencies]
 zerocopy-derive = "0.1.3"
 
 [dependencies.gfx-backend-vulkan]

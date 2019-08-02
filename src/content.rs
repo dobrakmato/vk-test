@@ -1,6 +1,5 @@
 use std::path::{Path, PathBuf};
 use std::fs::{read_to_string, File};
-use std::io::Read;
 
 enum Error {
     NotFound,
