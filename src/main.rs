@@ -5,9 +5,6 @@
 #[cfg(feature = "vulkan")]
 use gfx_backend_vulkan as back;
 
-#[macro_use]
-extern crate zerocopy_derive;
-
 use arrayvec::ArrayVec;
 use gfx_hal::adapter::PhysicalDevice;
 use gfx_hal::command::{ClearColor, ClearValue, CommandBuffer, MultiShot, Primary};
@@ -29,9 +26,6 @@ use std::mem::ManuallyDrop;
 use std::time::Instant;
 use winit::dpi::LogicalSize;
 use winit::{Event, EventsLoop, Window, WindowBuilder, WindowEvent};
-
-mod bf;
-mod content;
 
 #[derive(Debug)]
 struct WinitState {

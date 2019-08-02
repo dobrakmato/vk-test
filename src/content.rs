@@ -1,7 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::fs::{read_to_string, File};
 
-enum Error {
+/// Content loading error type (with optional message).
+pub enum Error {
     NotFound,
     IOError(String),
 }
