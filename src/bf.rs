@@ -1,5 +1,7 @@
 use zerocopy::LayoutVerified;
 use byteorder::{LittleEndian, ByteOrder};
+use crate::bf::ColorSpace::{Linear, Srgb};
+use crate::bf::BfImageFormat::{Dxt1, Dxt3, Dxt5, Rgb8, Rgba8, Srgb8, Srgb8A8, SrgbDxt5, SrgbDxt3, SrgbDxt1};
 
 /// Enum representing possible types of BF files.
 pub enum Type {
@@ -21,8 +23,106 @@ pub struct BfHeader {
     kind: u8,
     version: u8,
     reserved: u32,
+    pub additional: u64,
     pub uncompressed: u64,
     pub compressed: u64,
+}
+
+/// Struct for additional data of Image kind.
+#[repr(C)]
+#[derive(Eq, PartialEq, Hash, Debug, Copy, Clone)]
+pub struct BfImageAdditional {
+    width: u16,
+    height: u16,
+    format: u8,
+    padding1: u8,
+    padding2: u16,
+}
+
+impl BfImageAdditional {
+    pub fn new(width: u16, height: u16, format: u8) -> Self {
+        BfImageAdditional {
+            width,
+            height,
+            format,
+            padding1: 0,
+            padding2: 0,
+        }
+    }
+
+    pub fn into_u64(self) -> u64 {
+        return unsafe { std::mem::transmute(self) };
+    }
+
+    pub fn from_u64(data: u64) -> Self {
+        return unsafe { std::mem::transmute(data) };
+    }
+}
+
+pub enum ColorSpace {
+    Linear,
+    Srgb,
+}
+
+/// Supported image formats in Image kind of BF files.
+#[repr(u8)]
+pub enum BfImageFormat {
+    // linear variants
+    Dxt1 = 0,
+    Dxt3 = 1,
+    Dxt5 = 2,
+    Rgb8 = 3,
+    Rgba8 = 4,
+    // srgb variants
+    SrgbDxt1 = 5,
+    SrgbDxt3 = 6,
+    SrgbDxt5 = 7,
+    Srgb8 = 8,
+    Srgb8A8 = 9,
+}
+
+impl BfImageFormat {
+    pub fn channels(&self) -> usize {
+        match self {
+            BfImageFormat::Dxt1 => 3,
+            BfImageFormat::Dxt3 => 4,
+            BfImageFormat::Dxt5 => 4,
+            BfImageFormat::Rgb8 => 3,
+            BfImageFormat::Rgba8 => 4,
+            BfImageFormat::SrgbDxt1 => 3,
+            BfImageFormat::SrgbDxt3 => 4,
+            BfImageFormat::SrgbDxt5 => 4,
+            BfImageFormat::Srgb8 => 3,
+            BfImageFormat::Srgb8A8 => 4,
+        }
+    }
+
+    pub fn color_space(&self) -> ColorSpace {
+        match self {
+            BfImageFormat::SrgbDxt1 => Srgb,
+            BfImageFormat::SrgbDxt3 => Srgb,
+            BfImageFormat::SrgbDxt5 => Srgb,
+            BfImageFormat::Srgb8 => Srgb,
+            BfImageFormat::Srgb8A8 => Srgb,
+            _ => Linear
+        }
+    }
+
+    pub fn from_string(s: &str) -> Option<BfImageFormat> {
+        match s {
+            "dxt1" => Some(Dxt1),
+            "dxt3" => Some(Dxt3),
+            "dxt5" => Some(Dxt5),
+            "rgb" => Some(Rgb8),
+            "rgba" => Some(Rgba8),
+            "srgb_dxt1" => Some(SrgbDxt1),
+            "srgb_dxt3" => Some(SrgbDxt3),
+            "srgb_dxt5" => Some(SrgbDxt5),
+            "srgb" => Some(Srgb8),
+            "srgb_a" => Some(Srgb8A8),
+            _ => None
+        }
+    }
 }
 
 /* Constant representing the two byte magic sequence 'BF' */
@@ -30,12 +130,13 @@ const BF_MAGIC: u16 = 17986;
 const BF_MAX_SUPPORTED_VERSION: u8 = 1;
 
 impl BfHeader {
-    pub fn new(kind: Type, version: u8, uncompressed: u64, compressed: u64) -> Self {
+    pub fn new(kind: Type, version: u8, additional: u64, uncompressed: u64, compressed: u64) -> Self {
         BfHeader {
             magic: BF_MAGIC,
             kind: kind as u8,
-            reserved: 0,
             version,
+            reserved: 0,
+            additional,
             uncompressed,
             compressed,
         }
@@ -109,7 +210,7 @@ pub fn load_bf_from_bytes(bytes: &[u8]) -> Result<BfFile, Error> {
 mod tests {
     use matches::assert_matches;
     use zerocopy::AsBytes;
-    use crate::bf::{BfHeader, Type, load_bf_from_bytes, Error, BF_MAX_SUPPORTED_VERSION, BF_MAGIC};
+    use crate::bf::{BfHeader, Type, load_bf_from_bytes, Error, BF_MAX_SUPPORTED_VERSION, BF_MAGIC, BfImageAdditional};
 
     #[test]
     fn test_load_bf_from_bytes() {
@@ -118,6 +219,7 @@ mod tests {
             kind: Type::CompiledShader as u8,
             version: 1,
             reserved: 0,
+            additional: 66,
             uncompressed: 1024,
             compressed: 1023,
         };
@@ -140,6 +242,7 @@ mod tests {
         assert_eq!(file.header.reserved, header.reserved);
         assert_eq!(file.header.uncompressed, header.uncompressed);
         assert_eq!(file.header.compressed, header.compressed);
+        assert_eq!(file.header.additional, header.additional);
         assert_eq!(file.data, data);
     }
 
@@ -149,5 +252,21 @@ mod tests {
         assert_matches!(load_bf_from_bytes(&[66, 70, 255]), Err(Error::InvalidKindValue));
         assert_matches!(load_bf_from_bytes(&[66, 70, 1, BF_MAX_SUPPORTED_VERSION + 1]), Err(Error::VersionTooHigh));
         assert_matches!(load_bf_from_bytes(&[66, 70, 1, 1, 0, 1]), Err(Error::NotEnoughDataOrUnaligned));
+    }
+
+    #[test]
+    fn bf_image_additional_data() {
+        let a = BfImageAdditional {
+            width: 169,
+            height: 444,
+            format: 4,
+            padding1: 0,
+            padding2: 0,
+        };
+
+        let b = a.clone();
+        let a_u64 = b.into_u64();
+
+        assert_eq!(a, BfImageAdditional::from_u64(a_u64));
     }
 }

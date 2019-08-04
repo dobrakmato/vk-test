@@ -104,7 +104,7 @@ mod tests {
 
         let mut read = content.load_binary("text_file.txt").ok().unwrap();
         let mut contents = [0u8; 14];
-        read.read_exact(&mut contents);
+        read.read_exact(&mut contents).ok();
 
         assert_eq!(&contents, b"test text file");
         assert!(content.load_binary("non_existing.txt").is_err());

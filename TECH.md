@@ -70,8 +70,10 @@ Binary format is an optimized format for storing various game files after import
 #### Header
 All files contain header consisting of: 
 - magic string 'BF' (u16)
-- type number (u8)
+- kind number (u8)
 - version (u8)
+- *padding* (u32)
+- kind dependant data (u64)
 - compressed size (u64)
 - uncompressed size (u64)
 
@@ -80,8 +82,8 @@ If the file is not compressed then the `compressed size` should be `0`.
 Right after the header comes the payload (either LZ4 compressed or not). 
 Payload data structure depends on the type of file.
 
-#### Types
-Following constants are valid type numbers:
+#### Kinds
+Following constants are valid kind numbers:
 
 ```
 Image = 0
@@ -109,7 +111,18 @@ Right after the header the data part comes.
 
 ### Image
 
-Types: DXT1, DXT5, RGBA8, RGBA16, RGB8, RGB16, RG16, R16
+Formats: DXT1, DXT3, DXT5, RGB8, RGBA8, (and their srgb variants)
+
+The following values are stored inside the `kind additional data` field of header.
+- width (u16)
+- height (u16)
+- format (u8)
+- padding (u8)
+
+The payload contains all mip-maps in the width decreasing order. It is possible to
+seek to the n-th mip-map by computing the size of preceding mip-maps using the width,
+height and format.
+
 
 ### Model / Geometry
 
