@@ -130,6 +130,13 @@ mod tests {
 
     #[test]
     #[should_panic]
+    fn new_started_stopwatch_panics_when_multiple_starts() {
+        let mut stopwatch = Stopwatch::new_started("root");
+        stopwatch.start();
+    }
+
+    #[test]
+    #[should_panic]
     fn stopwatch_panics_when_multiple_ends() {
         let mut stopwatch = Stopwatch::new("root");
 
