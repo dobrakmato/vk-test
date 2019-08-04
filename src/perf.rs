@@ -1,9 +1,9 @@
-use std::time::Instant;
+use std::time::{Instant, Duration};
 
 pub struct Stopwatch<'a> {
-    runs: u128,
-    total_time: u128,
-    last_time: u128,
+    runs: u64,
+    total_time: u64,
+    last_time: u64,
     name: &'a str,
     last_start: Option<Instant>,
 }
@@ -18,6 +18,13 @@ impl<'a> Stopwatch<'a> {
             name,
             last_start: None,
         }
+    }
+
+    /// Creates a new Stopwatch with specified name that is already start()-ed.
+    pub fn new_started(name: &'a str) -> Self {
+        let mut watch = Self::new(name);
+        watch.start();
+        watch
     }
 
     /// If the stopwatch is currently stopped, starts the stopwatch. If the stopwatch
@@ -44,7 +51,7 @@ impl<'a> Stopwatch<'a> {
             None => panic!("Stopwatch must be start()-end before end()-ing again!"),
             Some(s) => {
                 let elapsed = Instant::now() - s;
-                self.last_time = elapsed.as_micros();
+                self.last_time = elapsed.as_micros() as u64;
                 self.total_time += self.last_time;
                 self.runs += 1;
                 self.last_start = None;
@@ -58,17 +65,17 @@ impl<'a> Stopwatch<'a> {
     }
 
     #[inline]
-    pub fn runs(&self) -> u128 {
+    pub fn runs(&self) -> u64 {
         self.runs
     }
 
     #[inline]
-    pub fn total_time(&self) -> u128 {
-        self.total_time
+    pub fn total_time(&self) -> Duration {
+        Duration::from_micros(self.total_time)
     }
 
     #[inline]
-    pub fn last_time(&self) -> u128 {
+    pub fn last_time(&self) -> u64 {
         self.last_time
     }
 

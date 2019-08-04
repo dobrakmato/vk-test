@@ -21,8 +21,8 @@ pub struct BfHeader {
     kind: u8,
     version: u8,
     reserved: u32,
-    uncompressed: u64,
-    compressed: u64,
+    pub uncompressed: u64,
+    pub compressed: u64,
 }
 
 /* Constant representing the two byte magic sequence 'BF' */
