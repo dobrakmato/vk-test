@@ -97,7 +97,7 @@ mod tests {
         let root = Stopwatch::new("root");
 
         assert_eq!(root.runs(), 0);
-        assert_eq!(root.total_time(), 0);
+        assert_eq!(root.total_time().as_micros(), 0);
         assert_eq!(root.avg_time(), 0.0);
         assert_eq!(root.last_time(), 0);
         assert_eq!(root.name(), "root");
@@ -112,10 +112,10 @@ mod tests {
         root.end();
 
         assert_eq!(root.runs(), 1);
-        assert_ne!(root.total_time(), 0);
+        assert_ne!(root.total_time().as_micros(), 0);
         assert_ne!(root.avg_time(), 0.0);
         assert_ne!(root.last_time(), 0);
-        assert_eq!(root.last_time(), root.total_time());
+        assert_eq!(root.last_time(), root.total_time().as_micros() as u64);
         assert_eq!(root.last_time() as f64, root.avg_time());
     }
 
