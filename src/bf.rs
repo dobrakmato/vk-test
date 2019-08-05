@@ -2,9 +2,13 @@ use zerocopy::LayoutVerified;
 use byteorder::{LittleEndian, ByteOrder};
 use crate::bf::ColorSpace::{Linear, Srgb};
 use crate::bf::BfImageFormat::{Dxt1, Dxt3, Dxt5, Rgb8, Rgba8, Srgb8, Srgb8A8, SrgbDxt5, SrgbDxt3, SrgbDxt1};
+use std::convert::TryFrom;
+use crate::bf::Kind::{Image, Geometry, Audio, Material, VirtualFileSystem, CompiledShader, Scene};
 
 /// Enum representing possible types of BF files.
-pub enum Type {
+#[derive(Debug)]
+#[repr(u8)]
+pub enum Kind {
     Image = 0,
     Geometry = 1,
     Audio = 2,
@@ -15,14 +19,32 @@ pub enum Type {
     MaxValue = 7,
 }
 
+// todo: rather derive than manually implement
+impl TryFrom<u8> for Kind {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Image),
+            1 => Ok(Geometry),
+            2 => Ok(Audio),
+            3 => Ok(Material),
+            4 => Ok(VirtualFileSystem),
+            5 => Ok(CompiledShader),
+            6 => Ok(Scene),
+            _ => Err(()),
+        }
+    }
+}
+
 /// Header of every BF file.
 #[repr(C)]
 #[derive(FromBytes, AsBytes, Eq, PartialEq, Hash, Debug)]
 pub struct BfHeader {
-    magic: u16,
-    kind: u8,
-    version: u8,
-    reserved: u32,
+    pub magic: u16,
+    pub kind: u8,
+    pub version: u8,
+    pub reserved: u32,
     pub additional: u64,
     pub uncompressed: u64,
     pub compressed: u64,
@@ -130,7 +152,7 @@ const BF_MAGIC: u16 = 17986;
 const BF_MAX_SUPPORTED_VERSION: u8 = 1;
 
 impl BfHeader {
-    pub fn new(kind: Type, version: u8, additional: u64, uncompressed: u64, compressed: u64) -> Self {
+    pub fn new(kind: Kind, version: u8, additional: u64, uncompressed: u64, compressed: u64) -> Self {
         BfHeader {
             magic: BF_MAGIC,
             kind: kind as u8,
@@ -146,8 +168,8 @@ impl BfHeader {
 /// Structure for holding loaded BfFile using zero-copy loading mechanism.
 #[derive(Debug)]
 pub struct BfFile<'a> {
-    header: LayoutVerified<&'a [u8], BfHeader>,
-    data: &'a [u8],
+    pub header: LayoutVerified<&'a [u8], BfHeader>,
+    pub data: &'a [u8],
 }
 
 /// Enum representing possible types of images.
@@ -195,7 +217,7 @@ pub fn load_bf_from_bytes(bytes: &[u8]) -> Result<BfFile, Error> {
 
     // verify magic, version and kind values
     if LittleEndian::read_u16(bytes) != BF_MAGIC { return Err(Error::InvalidFileSignature); }
-    if bytes[2] > Type::MaxValue as u8 { return Err(Error::InvalidKindValue); }
+    if bytes[2] > Kind::MaxValue as u8 { return Err(Error::InvalidKindValue); }
     if bytes[3] > 1 { return Err(Error::VersionTooHigh); }
 
     // transmute the slice
@@ -210,13 +232,13 @@ pub fn load_bf_from_bytes(bytes: &[u8]) -> Result<BfFile, Error> {
 mod tests {
     use matches::assert_matches;
     use zerocopy::AsBytes;
-    use crate::bf::{BfHeader, Type, load_bf_from_bytes, Error, BF_MAX_SUPPORTED_VERSION, BF_MAGIC, BfImageAdditional};
+    use crate::bf::{BfHeader, Kind, load_bf_from_bytes, Error, BF_MAX_SUPPORTED_VERSION, BF_MAGIC, BfImageAdditional};
 
     #[test]
     fn test_load_bf_from_bytes() {
         let header = BfHeader {
             magic: BF_MAGIC,
-            kind: Type::CompiledShader as u8,
+            kind: Kind::CompiledShader as u8,
             version: 1,
             reserved: 0,
             additional: 66,

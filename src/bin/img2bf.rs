@@ -9,7 +9,7 @@ use lz4::block::compress;
 use lz4::block::CompressionMode::HIGHCOMPRESSION;
 use zerocopy::AsBytes;
 
-use vk_test::bf::{BfHeader, BfImageFormat, Type, BfImageAdditional};
+use vk_test::bf::{BfHeader, BfImageFormat, Kind, BfImageAdditional};
 use vk_test::perf::Stopwatch;
 
 struct Timers<'a> {
@@ -201,7 +201,7 @@ fn main() {
     // 6. write file_out
     timers.save.start();
     let bf_header = BfHeader::new(
-        Type::Image,
+        Kind::Image,
         1,
         BfImageAdditional::new(width as u16, height as u16, output_format as u8).into_u64(),
         payload.len() as u64,

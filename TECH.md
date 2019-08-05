@@ -58,10 +58,10 @@ Valid lighting models are:
 ### Vertex buffers
 
 Vertex buffers are not interleaved. Standard shader contains these buffers:
-- positions
-- normals
-- uvs
-- tangents
+- positions (float3)
+- normals (float3)
+- uvs (float2)
+- tangents (float3)
 
 
 ## Binary Format

@@ -22,6 +22,7 @@ clap = "2.33.0"
 image = "0.22.1"
 lz4 = "1.23.1"
 byteorder = "1.3.2"
+shaderc = "0.6.1"
 
 [dev-dependencies]
 matches = "0.1.8"

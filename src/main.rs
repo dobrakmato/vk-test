@@ -15,7 +15,7 @@ use gfx_hal::pass::{Attachment, AttachmentLoadOp, AttachmentOps, AttachmentStore
 use gfx_hal::pool::CommandPoolCreateFlags;
 use gfx_hal::pso::{PipelineStage, Rect};
 use gfx_hal::queue::family::QueueFamily;
-use gfx_hal::window::Surface;
+use gfx_hal::window::{Surface, Extent2D};
 use gfx_hal::window::Swapchain;
 use gfx_hal::{
     Adapter, Backend, CommandPool, CompositeAlpha, Features, Gpu, Graphics, Instance, PresentMode,
@@ -41,6 +41,7 @@ impl WinitState {
         let window = WindowBuilder::new()
             .with_title(title.into())
             .with_dimensions(dimensions)
+            .with_resizable(false)
             .build(&events_loop)
             .expect("Could not create a window!");
 
@@ -142,13 +143,13 @@ impl HalState {
                     .iter()
                     .find(|format| format.base_format().1 == ChannelType::Srgb)
                     .cloned()
-                {
-                    Some(srgb_format) => srgb_format,
-                    None => formats
-                        .get(0)
-                        .cloned()
-                        .ok_or("Preferred format list was empty!")?,
-                },
+                    {
+                        Some(srgb_format) => srgb_format,
+                        None => formats
+                            .get(0)
+                            .cloned()
+                            .ok_or("Preferred format list was empty!")?,
+                    },
             };
 
             let image_count = if present_mode == PresentMode::Mailbox {
@@ -157,12 +158,23 @@ impl HalState {
                 (capabilities.image_count.end - 1).min(2)
             };
 
+            let extent = {
+                let window_client_area = window
+                    .get_inner_size()
+                    .ok_or("Window doesn't exist!")?
+                    .to_physical(window.get_hidpi_factor());
+                Extent2D {
+                    width: capabilities.extents.end.width.min(window_client_area.width as u32),
+                    height: capabilities.extents.end.height.min(window_client_area.height as u32),
+                }
+            };
+
             let config = SwapchainConfig {
                 present_mode,
                 format,
                 image_count,
+                extent,
                 composite_alpha: CompositeAlpha::OPAQUE,
-                extent: capabilities.extents.end,
                 image_layers: 1,
                 image_usage: Usage::COLOR_ATTACHMENT,
             };
@@ -174,7 +186,7 @@ impl HalState {
 
             (
                 swapchain,
-                capabilities.extents.end,
+                extent,
                 backbuffer,
                 format,
                 image_count as usize,
@@ -303,6 +315,19 @@ impl HalState {
         })
     }
 
+    /*
+    fn create_pipeline(
+        device: &mut back::Device, extent: Extent2D, render_pass: &<back::Backend as Backend>::RenderPass,
+    ) -> Result<
+        (
+            Vec<<back::Backend as Backend>::DescriptorSetLayout>,
+            <back::Backend as Backend>::PipelineLayout,
+            <back::Backend as Backend>::GraphicsPipeline,
+        ),
+        &'static str,
+    > {}
+    */
+
     pub fn draw_clear_frame(&mut self, color: [f32; 4]) -> Result<(), &'static str> {
         // SETUP FOR THIS FRAME
         let image_available = &self.image_available_semaphores[self.current_frame];
@@ -363,6 +388,91 @@ impl HalState {
             Ok(())
         }
     }
+
+    /*
+    pub fn draw_triangle_frame(&mut self, triangle: Triangle) -> Result<(), &'static str> {
+        // SETUP FOR THIS FRAME
+        let image_available = &self.image_available_semaphores[self.current_frame];
+        let render_finished = &self.render_finished_semaphores[self.current_frame];
+        // Advance the frame _before_ we start using the `?` operator
+        self.current_frame = (self.current_frame + 1) % self.frames_in_flight;
+
+        let (i_u32, i_usize) = unsafe {
+            let image_index = self
+                .swapchain
+                .acquire_image(core::u64::MAX, Some(image_available), None)
+                .map_err(|_| "Couldn't acquire an image from the swapchain!")?;
+            (image_index.0, image_index.0 as usize)
+        };
+
+        let flight_fence = &self.in_flight_fences[i_usize];
+        unsafe {
+            self.device
+                .wait_for_fence(flight_fence, core::u64::MAX)
+                .map_err(|_| "Failed to wait on the fence!")?;
+            self.device
+                .reset_fence(flight_fence)
+                .map_err(|_| "Couldn't reset the fence!")?;
+        }
+
+        // WRITE THE TRIANGLE DATA
+        unsafe {
+            let mut data_target = self
+                .device
+                .acquire_mapping_writer(&self.memory, 0..self.requirements.size)
+                .map_err(|_| "Failed to acquire a memory writer!")?;
+            let points = triangle.points_flat();
+            data_target[..points.len()].copy_from_slice(&points);
+            self
+                .device
+                .release_mapping_writer(data_target)
+                .map_err(|_| "Couldn't release the mapping writer!")?;
+        }
+
+        // RECORD COMMANDS
+        unsafe {
+            let buffer = &mut self.command_buffers[i_usize];
+            let clear_values = [ClearValue::Color(ClearColor::Float([0.1, 0.2, 0.3, 1.0]))];
+            buffer.begin(false);
+            {
+                let mut encoder = buffer.begin_render_pass_inline(
+                    &self.render_pass,
+                    &self.framebuffers[i_usize],
+                    self.render_area,
+                    clear_values.iter(),
+                );
+                encoder.bind_graphics_pipeline(&self.graphics_pipeline);
+                // Here we must force the Deref impl of ManuallyDrop to play nice.
+                let buffer_ref: &<back::Backend as Backend>::Buffer = &self.buffer;
+                let buffers: ArrayVec<[_; 1]> = [(buffer_ref, 0)].into();
+                encoder.bind_vertex_buffers(0, buffers);
+                encoder.draw(0..3, 0..1);
+            }
+            buffer.finish();
+        }
+
+        // SUBMISSION AND PRESENT
+        let command_buffers = &self.command_buffers[i_usize..=i_usize];
+        let wait_semaphores: ArrayVec<[_; 1]> =
+            [(image_available, PipelineStage::COLOR_ATTACHMENT_OUTPUT)].into();
+        let signal_semaphores: ArrayVec<[_; 1]> = [render_finished].into();
+        // yes, you have to write it twice like this. yes, it's silly.
+        let present_wait_semaphores: ArrayVec<[_; 1]> = [render_finished].into();
+        let submission = Submission {
+            command_buffers,
+            wait_semaphores,
+            signal_semaphores,
+        };
+        let the_command_queue = &mut self.queue_group.queues[0];
+        unsafe {
+            the_command_queue.submit(submission, Some(flight_fence));
+            self.swapchain
+                .present(the_command_queue, i_u32, present_wait_semaphores)
+                .map_err(|_| "Failed to present into the swapchain!")?;
+            Ok(())
+        }
+    }
+    */
 }
 
 impl Drop for HalState {
@@ -466,6 +576,18 @@ fn do_the_render(hal_state: &mut HalState, local_state: &LocalState) -> Result<(
     hal_state.draw_clear_frame([r, g, b, a])
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct Triangle {
+    pub points: [[f32; 2]; 3],
+}
+
+impl Triangle {
+    pub fn points_flat(self) -> [f32; 6] {
+        let [[a, b], [c, d], [e, f]] = self.points;
+        [a, b, c, d, e, f]
+    }
+}
+
 fn main() {
     simple_logger::init().unwrap();
 
@@ -487,6 +609,7 @@ fn main() {
         if inputs.end_requested {
             break;
         }
+
         local_state.update_from_input(inputs);
         if let Err(e) = do_the_render(&mut hal_state, &local_state) {
             error!("Rendering Error: {:?}", e);
