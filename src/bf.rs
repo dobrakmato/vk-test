@@ -54,9 +54,9 @@ pub struct BfHeader {
 #[repr(C)]
 #[derive(Eq, PartialEq, Hash, Debug, Copy, Clone)]
 pub struct BfImageAdditional {
-    width: u16,
-    height: u16,
-    format: u8,
+    pub width: u16,
+    pub height: u16,
+    pub format: u8,
     padding1: u8,
     padding2: u16,
 }
@@ -119,6 +119,21 @@ impl BfImageFormat {
         }
     }
 
+    pub fn bits_per_pixel(&self) -> usize {
+        match self {
+            BfImageFormat::Dxt1 => 4,
+            BfImageFormat::Dxt3 => 8,
+            BfImageFormat::Dxt5 => 8,
+            BfImageFormat::Rgb8 => 24,
+            BfImageFormat::Rgba8 => 32,
+            BfImageFormat::SrgbDxt1 => 4,
+            BfImageFormat::SrgbDxt3 => 8,
+            BfImageFormat::SrgbDxt5 => 8,
+            BfImageFormat::Srgb8 => 24,
+            BfImageFormat::Srgb8A8 => 32,
+        }
+    }
+
     pub fn color_space(&self) -> ColorSpace {
         match self {
             BfImageFormat::SrgbDxt1 => Srgb,
@@ -129,20 +144,44 @@ impl BfImageFormat {
             _ => Linear
         }
     }
+}
 
-    pub fn from_string(s: &str) -> Option<BfImageFormat> {
-        match s {
-            "dxt1" => Some(Dxt1),
-            "dxt3" => Some(Dxt3),
-            "dxt5" => Some(Dxt5),
-            "rgb" => Some(Rgb8),
-            "rgba" => Some(Rgba8),
-            "srgb_dxt1" => Some(SrgbDxt1),
-            "srgb_dxt3" => Some(SrgbDxt3),
-            "srgb_dxt5" => Some(SrgbDxt5),
-            "srgb" => Some(Srgb8),
-            "srgb_a" => Some(Srgb8A8),
-            _ => None
+impl TryFrom<&str> for BfImageFormat {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "dxt1" => Ok(Dxt1),
+            "dxt3" => Ok(Dxt3),
+            "dxt5" => Ok(Dxt5),
+            "rgb" => Ok(Rgb8),
+            "rgba" => Ok(Rgba8),
+            "srgb_dxt1" => Ok(SrgbDxt1),
+            "srgb_dxt3" => Ok(SrgbDxt3),
+            "srgb_dxt5" => Ok(SrgbDxt5),
+            "srgb" => Ok(Srgb8),
+            "srgb_a" => Ok(Srgb8A8),
+            _ => Err(())
+        }
+    }
+}
+
+impl TryFrom<u8> for BfImageFormat {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Dxt1),
+            1 => Ok(Dxt3),
+            2 => Ok(Dxt5),
+            3 => Ok(Rgb8),
+            4 => Ok(Rgba8),
+            5 => Ok(SrgbDxt1),
+            6 => Ok(SrgbDxt3),
+            7 => Ok(SrgbDxt5),
+            8 => Ok(Srgb8),
+            9 => Ok(Srgb8A8),
+            _ => Err(()),
         }
     }
 }

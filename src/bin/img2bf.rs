@@ -11,6 +11,7 @@ use zerocopy::AsBytes;
 
 use vk_test::bf::{BfHeader, BfImageFormat, Kind, BfImageAdditional};
 use vk_test::perf::Stopwatch;
+use std::convert::TryFrom;
 
 struct Timers<'a> {
     load: Stopwatch<'a>,
@@ -130,7 +131,7 @@ fn main() {
     timers.vflip.end();
 
     // 3. rgba <-> rgb
-    let output_format = BfImageFormat::from_string(matches.value_of("format").unwrap())
+    let output_format = BfImageFormat::try_from(matches.value_of("format").unwrap())
         .expect("invalid output format specified");
 
     // todo: remove and use the function from `image` crate when PR 1002 is merged

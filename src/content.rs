@@ -74,7 +74,6 @@ mod tests {
     use crate::content::Content;
     use std::path::Path;
     use std::io::Read;
-    use std::fs::File;
 
     #[test]
     fn exists() {
