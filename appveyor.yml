@@ -87,6 +87,7 @@ install:
   - 7z x ninja.zip -oC:\projects\deps\ninja > nul
   - set PATH=C:\projects\deps\ninja;%PATH%
   - ninja --version
+  - SET PATH=C:\Python37-x64;%PATH%
 
 ## Build Script ##
 
