@@ -31,11 +31,7 @@ before_script:
 
 # the main build
 script:
-  - |
-    cargo build &&
-    cargo test &&
-    cargo bench &&
-    cargo doc
+  - cargo test
 
 after_success:
   # measure code coverage and upload to coveralls.io
