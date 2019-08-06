@@ -79,6 +79,15 @@ install:
   - rustc -vV
   - cargo -vV
 
+  ############################################################################
+  # Install Ninja
+  ############################################################################
+  - set NINJA_URL="https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-win.zip"
+  - appveyor DownloadFile %NINJA_URL% -FileName ninja.zip
+  - 7z x ninja.zip -oC:\projects\deps\ninja > nul
+  - set PATH=C:\projects\deps\ninja;%PATH%
+  - ninja --version
+
 ## Build Script ##
 
 # 'cargo test' takes care of building for us, so disable Appveyor's build stage. This prevents
