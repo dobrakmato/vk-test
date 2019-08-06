@@ -1,34 +1,42 @@
-language: rust
 sudo: required
-dist: trusty
+language: rust
+
+# Cache cargo symbols for faster build
+cache: cargo
+
+# Dependencies of kcov, used by coverage
 addons:
   apt:
     packages:
-      - libssl-dev
-cache: cargo
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - binutils-dev
+      - cmake # also required for cargo-update
+    sources:
+      - kalakris-cmake
+
+# run builds for all the trains (and more)
 rust:
-  - stable
-  - beta
   - nightly
-matrix:
-  allow_failures:
-    - rust: nightly
-    - rust: beta
+  - beta
+  # check it compiles on the latest stable compiler
+  - stable
 
-before_cache: |
-  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    RUSTFLAGS="--cfg procmacro2_semver_exempt" cargo install cargo-tarpaulin -f
-  fi
+before_script:
+  - export PATH=$HOME/.cargo/bin:$PATH
+  - cargo install cargo-update || echo "cargo-update already installed"
+  - cargo install cargo-travis || echo "cargo-travis already installed"
+  - cargo install-update -a # update outdated cached binaries
+
+# the main build
 script:
-  - cargo clean
-  - cargo build
-  - cargo test
+  - |
+    cargo build &&
+    cargo test &&
+    cargo bench &&
+    cargo doc
 
-after_success: |
-  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    # Uncomment the following line for coveralls.io
-    travis_wait cargo tarpaulin --ciserver travis-ci --coveralls $TRAVIS_JOB_ID
-    # Uncomment the following two lines create and upload a report for codecov.io
-    travis_wait cargo tarpaulin --out Xml
-    bash <(curl -s https://codecov.io/bash)
-  fi
+after_success:
+  # measure code coverage and upload to coveralls.io
+  - cargo coveralls
