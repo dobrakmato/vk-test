@@ -126,7 +126,27 @@ height and format.
 
 ### Model / Geometry
 
-Each geometry contains multiple lists. Allowed list types:
+Each geometry contains multiple lists.
+
+The following values are stored inside the `kind additional data` field of header.
+- *nothing*
+
+Compressed payload consists of header containing information about the payload which follows the header.
+
+Geometry header:
+- global flags (u32)
+- num of lists (u32)
+- lists header
+  - list type (u16)
+  - list flags (u16)
+  - list length (u32)
+- payload (lists data)
+
+Lists are encoded in payload in the same order as they are specified in the header. It is possible to seek to
+required list by reading the geometry lists header list.
+
+Allowed list types:
+
 ```
 Positions = 0 (float3)
 Normals = 1 (float3)
@@ -136,8 +156,11 @@ UV1 = 4 (float2)
 UV2 = 5 (float2)
 UV3 = 6 (float2)
 UV4 = 7 (float2)
-Indices = 8 (u32)
+Indices(u8) = 8 (u8)
+Indices(u16) = 9 (u16)
+Indices(u32) = 10 (u32)
 ```
+
 
 ### Performance
 
