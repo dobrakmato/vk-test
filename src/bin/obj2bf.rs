@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use clap::{App, Arg, ArgMatches};
 
 use vk_test::perf::Stopwatch;
+use wavefront_obj::obj::parse;
 
 struct Timers<'a> {
     load: Stopwatch<'a>,
@@ -86,9 +87,18 @@ fn main() {
 
     let (input, output) = derive_input_and_output(&matches);
 
+    timers.load.start();
+    let cnts = std::fs::read_to_string(&input)
+        .map_err(|e| panic!("cannot read file: {}", e))
+        .unwrap();
+    let obj = parse(cnts)
+        .map_err(|e| panic!("cannot parse obj file: {:?}", e))
+        .unwrap();
+    timers.load.end();
 
-    // load and decode obj
-    // generate lods (simplify mesh)
+    println!("objects={}", obj.objects.len());
+
+    // todo: generate lods (simplify mesh)
     // rewrite to indexed (duplicate values)
     // optimize meshes (forsyth)
     // compress

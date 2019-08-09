@@ -3,7 +3,7 @@
 
 Integers are little-endian.
 
-World space is right-handed.
+World space is right-handed. Y+ coordinate is up.
 
 ## Renderer
 Rendering pipeline looks like this: 
@@ -59,10 +59,44 @@ Valid lighting models are:
 
 Vertex buffers are not interleaved. Standard shader contains these buffers:
 - positions (float3)
+- padding (float1)
 - normals (float3)
+- padding (float1)
 - uvs (float2)
+- padding (float2)
 - tangents (float3)
+- padding (float 1)
 
+
+### Uniform data
+
+For all objects:
+- time (float)
+
+For each object:
+- mvp (float4x4)
+
+For each material:
+- albedo_map (sampler)
+- normal_map (sampler)
+- ambient_occlusion_map (sampler)
+- emissive_map (sampler)
+- roughness_map (sampler)
+- metallic_map (sampler)
+
+- albedo_color (float4)
+- emissive (float)
+- ambient_occlusion (float)
+- roughness (float)
+- metallic (float)
+
+
+### Level Of Detail
+
+It is possible to use multiple geometries/models to form a dynamic LOD hierarchy.
+
+LOD 0 = maximum quality
+LOD 8 = minimum quality
 
 ## Binary Format
 Binary format is an optimized format for storing various game files after importing.
