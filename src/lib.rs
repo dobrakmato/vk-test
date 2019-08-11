@@ -5,3 +5,4 @@ extern crate zerocopy_derive;
 pub mod bf;
 pub mod content;
 pub mod perf;
+pub mod cli;
